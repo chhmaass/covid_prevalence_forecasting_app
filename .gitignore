@@ -1,0 +1,12 @@
+# Virtualenvs
+.venv/
+backend/.venv/
+frontend/.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -1,0 +1,110 @@
+{
+  "prev_ma_4w_c": {
+    "mean": 0.004571371667964284,
+    "std": 0.07203605725055356
+  },
+  "prev_slope_4w_c": {
+    "mean": 5.831909664176056e-05,
+    "std": 0.013776747241145334
+  },
+  "time_c": {
+    "mean": 0.0,
+    "std": 27.712228707419406
+  },
+  "latitude": {
+    "mean": 31.792196815286626,
+    "std": 21.788994112585623
+  },
+  "sine_seasonality": {
+    "mean": -0.0256017395380605,
+    "std": 0.7230553438403203
+  },
+  "cosine_seasonality": {
+    "mean": -0.05908001834499904,
+    "std": 0.6878307565205006
+  },
+  "sine_seasonality_x_latitude": {
+    "mean": -1.1289711772070206,
+    "std": 27.86247504329561
+  },
+  "cosine_seasonality_x_latitude": {
+    "mean": -2.6052775734714344,
+    "std": 26.480011529938448
+  },
+  "covid_19_policy_stringency_lag1": {
+    "mean": 0.5687952215081893,
+    "std": 0.17350303686424579
+  },
+  "covid_19_policy_stringency_lag2": {
+    "mean": 0.5656883720048529,
+    "std": 0.17779294840789206
+  },
+  "covid_19_policy_stringency_lag3": {
+    "mean": 0.5638232024378222,
+    "std": 0.17962324396738708
+  },
+  "covid_19_policy_stringency_lag4": {
+    "mean": 0.5649073665453442,
+    "std": 0.17973644650615286
+  },
+  "covid_19_face_covering_policy_lag1": {
+    "mean": 0.5698729432059448,
+    "std": 0.2771590470400451
+  },
+  "covid_19_face_covering_policy_lag2": {
+    "mean": 0.5635224730815894,
+    "std": 0.28179038199254774
+  },
+  "covid_19_face_covering_policy_lag3": {
+    "mean": 0.5572490142553836,
+    "std": 0.2861317306173299
+  },
+  "covid_19_face_covering_policy_lag4": {
+    "mean": 0.5512368014482862,
+    "std": 0.2900771089923296
+  },
+  "covid_19_testing_tracing_policy_lag1": {
+    "mean": 0.687249877835069,
+    "std": 0.24927861533124832
+  },
+  "covid_19_testing_tracing_policy_lag2": {
+    "mean": 0.6826320960974623,
+    "std": 0.2518791690763296
+  },
+  "covid_19_testing_tracing_policy_lag3": {
+    "mean": 0.678591438344623,
+    "std": 0.2535343484326188
+  },
+  "covid_19_testing_tracing_policy_lag4": {
+    "mean": 0.6749620340882283,
+    "std": 0.25463162970905273
+  },
+  "covid_19_policy_stringency_ewm_hl6": {
+    "mean": 0.5421119236663583,
+    "std": 0.14896276039019327
+  },
+  "covid_19_face_covering_policy_ewm_hl6": {
+    "mean": 0.5252369163618759,
+    "std": 0.27147694661944427
+  },
+  "covid_19_testing_tracing_policy_ewm_hl6": {
+    "mean": 0.6482012144578719,
+    "std": 0.244147298849839
+  },
+  "covid_19_policy_stringency_ewm_hl12": {
+    "mean": 0.5062154653513806,
+    "std": 0.14872903236199403
+  },
+  "covid_19_face_covering_policy_ewm_hl12": {
+    "mean": 0.4700865855203899,
+    "std": 0.26302951530872803
+  },
+  "covid_19_testing_tracing_policy_ewm_hl12": {
+    "mean": 0.6023617321362439,
+    "std": 0.2393061594092341
+  },
+  "lag_gate": {
+    "mean": 0.0,
+    "std": 1.0
+  }
+}

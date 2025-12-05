@@ -1,0 +1,42 @@
+{
+  "decoder_cont_lastdim": 27,
+  "expects": {
+    "decoder_cont": "float32 [B, H, D_known]"
+  },
+  "produces": "float32 [B, H, Q] in [0,1.0] (sigmoid on logits, scaled by U)",
+  "horizon": 12,
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "feature_order": [
+    "prev_ma_4w_c",
+    "prev_slope_4w_c",
+    "time_c",
+    "latitude",
+    "sine_seasonality",
+    "cosine_seasonality",
+    "sine_seasonality_x_latitude",
+    "cosine_seasonality_x_latitude",
+    "covid_19_policy_stringency_lag1",
+    "covid_19_policy_stringency_lag2",
+    "covid_19_policy_stringency_lag3",
+    "covid_19_policy_stringency_lag4",
+    "covid_19_face_covering_policy_lag1",
+    "covid_19_face_covering_policy_lag2",
+    "covid_19_face_covering_policy_lag3",
+    "covid_19_face_covering_policy_lag4",
+    "covid_19_testing_tracing_policy_lag1",
+    "covid_19_testing_tracing_policy_lag2",
+    "covid_19_testing_tracing_policy_lag3",
+    "covid_19_testing_tracing_policy_lag4",
+    "covid_19_policy_stringency_ewm_hl6",
+    "covid_19_face_covering_policy_ewm_hl6",
+    "covid_19_testing_tracing_policy_ewm_hl6",
+    "covid_19_policy_stringency_ewm_hl12",
+    "covid_19_face_covering_policy_ewm_hl12",
+    "covid_19_testing_tracing_policy_ewm_hl12",
+    "lag_gate"
+  ]
+}

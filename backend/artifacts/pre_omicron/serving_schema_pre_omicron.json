@@ -1,0 +1,66 @@
+{
+  "time_idx": "week_id",
+  "target": "covid_19_prevalence",
+  "group_ids": [
+    "country_iso3"
+  ],
+  "max_prediction_length": 12,
+  "static_categoricals": [
+    "country_iso3"
+  ],
+  "static_reals": [],
+  "time_varying_known_reals": [
+    "prev_ma_4w_c",
+    "prev_slope_4w_c",
+    "time_c",
+    "latitude",
+    "sine_seasonality",
+    "cosine_seasonality",
+    "sine_seasonality_x_latitude",
+    "cosine_seasonality_x_latitude",
+    "covid_19_policy_stringency_lag1",
+    "covid_19_policy_stringency_lag2",
+    "covid_19_policy_stringency_lag3",
+    "covid_19_policy_stringency_lag4",
+    "covid_19_face_covering_policy_lag1",
+    "covid_19_face_covering_policy_lag2",
+    "covid_19_face_covering_policy_lag3",
+    "covid_19_face_covering_policy_lag4",
+    "covid_19_testing_tracing_policy_lag1",
+    "covid_19_testing_tracing_policy_lag2",
+    "covid_19_testing_tracing_policy_lag3",
+    "covid_19_testing_tracing_policy_lag4",
+    "covid_19_policy_stringency_ewm_hl6",
+    "covid_19_face_covering_policy_ewm_hl6",
+    "covid_19_testing_tracing_policy_ewm_hl6",
+    "covid_19_policy_stringency_ewm_hl12",
+    "covid_19_face_covering_policy_ewm_hl12",
+    "covid_19_testing_tracing_policy_ewm_hl12",
+    "lag_gate"
+  ],
+  "constants": {
+    "prevalence_cap": 1.0
+  },
+  "time_varying_unknown_reals": [],
+  "normalization": {
+    "type": "FeatureZNormOnly"
+  },
+  "categorical_encoders": {
+    "country_iso3": {
+      "encoder": "LabelMap",
+      "add_nan": false
+    }
+  },
+  "notes": [
+    "No PCA. Policies use RAW sliders.",
+    "Policy windows are exponential weighted means (Koyck) with halflives {6,12}.",
+    "Anchors: prev_ma_4w, prev_slope_4w (history-only); time_c fixed across horizon.",
+    "Smoothed policy windows used directly (no residualization).",
+    "Step-varying across horizon: policy windows & discrete lags; seasonality & latitude held fixed.",
+    "Non-crossing quantiles via cumulative Softplus.",
+    "Policy EWMs hard-constrained non-positive (per-feature caps). Lag features are unconstrained (optionally L2-regularized).",
+    "Targets use stabilized logit on y/U; outputs are sigmoid-mapped logits and scaled by U at serve time.",
+    "Single model; no random effects.",
+    "Includes lag_gate feature; served with lag gate OFF (validation matches serving)."
+  ]
+}

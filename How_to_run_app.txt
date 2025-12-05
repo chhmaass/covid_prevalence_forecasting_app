@@ -1,0 +1,10 @@
+cd C:\Maass\covid_prevalence_forecasting_app\backend
+.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+
+
+cd C:\Maass\covid_prevalence_forecasting_app\frontend
+.venv\Scripts\activate
+streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+http://localhost:8501/
