@@ -1,6 +1,6 @@
 # streamlit_app.py
 # ---------------------------------------------------------------------
-# COVID-19 Prevalence — Variant-Aware Scenario Forecast App
+# COVID-19 Prevalence — Policy-Sensitive Scenario Forecast App
 #
 # Frontend for a BACKEND API that wraps TWO variant-specific models:
 #   - pre-Omicron
@@ -97,7 +97,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("🦠 COVID-19 Prevalence — Variant-Aware Scenario Forecasts")
+st.title("🦠 COVID-19 Prevalence — Policy-Sensitive Scenario Forecasts")
 
 st.markdown("""
 This app calls a **backend forecasting API** that wraps two horizon-aware
@@ -153,7 +153,7 @@ w_omicron = st.sidebar.slider(
 )
 
 st.sidebar.caption(
-    "Policy sliders use **raw 0–1 policy levels** "
+    "Policy controls use **raw 0–1 policy levels** "
     "(0 = minimal restrictions, 1 = max in training data)."
 )
 
@@ -172,7 +172,7 @@ scenario_type = st.radio(
 scenario_path: Optional[np.ndarray] = None
 
 if scenario_type in ("Constant", "Linear trend"):
-    st.markdown("#### Policy sliders (0–1 normalized raw levels)")
+    st.markdown("#### Policy controls (0–1 normalized raw levels)")
 
     c1, c2, c3 = st.columns(3)
 
