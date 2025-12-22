@@ -92,7 +92,7 @@ def build_manual_path(df: pd.DataFrame,
 # Streamlit layout
 # ---------------------------------------------------------------------
 st.set_page_config(
-    page_title="COVID-19 Variant-Aware Scenario Forecasts",
+    page_title="COVID-19 Prevalence – Policy-Sensitive Scenario Forecasts",
     page_icon="🦠",
     layout="wide",
 )
@@ -196,9 +196,6 @@ if scenario_type in ("Constant", "Linear trend"):
         t_end = st.number_input("Testing & tracing end",
                                 *POLICY_RANGES["covid_19_testing_tracing_policy"],
                                 disabled=(scenario_type != "Linear trend"))
-
-    with c3:
-        st.metric("Model horizon H", H_MODEL)
 
     if scenario_type == "Constant":
         scenario_path = build_constant_path((s_start, f_start, t_start))
