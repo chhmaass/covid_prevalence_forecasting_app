@@ -113,31 +113,26 @@ st.sidebar.header("Settings")
 country_iso3 = st.sidebar.text_input(
     "Country ISO3", value="USA").strip().upper()
 
-# week_id_or_idx = st.sidebar.number_input(
-# "Anchor week_id_or_idx", min_value=0, max_value=9999, value=100
-# )
 week_id_or_idx = st.sidebar.number_input(
-    "Global week index (week_id_or_idx)",
+    "Forecast anchor week (model index, 2020-03-01 → 2023-07-31)",
     min_value=0,
     max_value=178,
     value=100,
-    help="Global pandemic week; backend maps this to pre- and omicron local weeks."
+    help=(
+        "Integer model week index covering 179 weeks total. "
+        "Week 0 = 2020-03-01. "
+        "Week 178 = 2023-07-31. "
+        "This is not a calendar or ISO week."
+    )
 )
 
+st.sidebar.caption(
+    "Model timeline: 2020 (0–43), 2021 (44–95), 2022 (96–147), 2023 (148–178)"
+)
 
 display_h = st.sidebar.slider(
     "Display horizon (steps ahead)", min_value=1, max_value=H_MODEL, value=H_MODEL
 )
-
-# w_omicron = st.sidebar.slider(
-# "Omicron weight (variant blend)",
-# min_value=0.0, max_value=1.0,
-# value=1.0, step=0.05
-# )
-
-# st.sidebar.caption(
-# "Policy sliders use **raw 0–1 policy levels** (matching model inputs)."
-# )
 
 auto_blend = st.sidebar.checkbox(
     "Auto variant blend (time-based)",
@@ -251,16 +246,6 @@ if run:
         st.error("Scenario path invalid.")
         st.stop()
 
-    # payload = {
-        # "country_iso3": country_iso3,
-        # "week_id_or_idx": int(week_id_or_idx),
-        # "policy_sliders": scenario_path.tolist(),
-        # "quantiles": DEFAULT_QUANTILES,
-        # "variant_blend": {
-        # "pre_omicron_weight": float(1.0 - w_omicron),
-        # "omicron_weight": float(w_omicron),
-        # },
-    # }
     if auto_blend:
         # Let the backend compute time-based weights from global_week
         variant_blend = {
@@ -285,7 +270,6 @@ if run:
     with st.spinner("Contacting backend..."):
         try:
             response = post_quantile_forecast(payload)
-            # st.json(response)  # temporarily
         except Exception as e:
             st.error(f"Backend call failed: {e}")
             st.stop()
@@ -294,24 +278,29 @@ if run:
     cmps = response.get("compare", {}) or {}
     history = response.get("history", {}) or {}
 
-    def to_df(maybe_list_or_none):
-        if maybe_list_or_none is None:
-            return None
-        df = pd.DataFrame(maybe_list_or_none)
-        return df if not df.empty else None
+    # def to_df(maybe_list_or_none):
+    # if maybe_list_or_none is None:
+    # return None
+    # df = pd.DataFrame(maybe_list_or_none)
+    # return df if not df.empty else None
 
     # Blended
-    df_blend_pred = to_df(preds.get("blended"))
-    df_blend_cmp = to_df(cmps.get("blended"))
+    # df_blend_pred = to_df(preds.get("blended"))
+    # df_blend_cmp = to_df(cmps.get("blended"))
 
     # Raw pre/omicron (for debug + extra charts)
-    pre_pred = to_df(preds.get("pre"))
-    omi_pred = to_df(preds.get("omicron"))
-    pre_cmp = to_df(cmps.get("pre"))
-    omi_cmp = to_df(cmps.get("omicron"))
+    # pre_pred = to_df(preds.get("pre"))
+    # omi_pred = to_df(preds.get("omicron"))
+    # pre_cmp = to_df(cmps.get("pre"))
+    # omi_cmp = to_df(cmps.get("omicron"))
 
-    # Optional: show raw response structure for debugging
-    # st.expander("Raw backend response").json(response)
+    df_blend_pred = pd.DataFrame(preds.get("blended", []))
+    if df_blend_pred.empty:
+        df_blend_pred = None
+
+    df_blend_cmp = pd.DataFrame(cmps.get("blended", []))
+    if df_blend_cmp.empty:
+        df_blend_cmp = None
 
     # -------------------
     # History block (NEW)
@@ -423,32 +412,6 @@ if run:
     st.markdown("---")
 
     # ---------------------------------------------------------------------
-    # Blended future-only forecast
-    # ---------------------------------------------------------------------
-    st.markdown("### Blended forecast (future only)")
-    if df_blend_pred is not None and not df_blend_pred.empty:
-        chart_df = df_blend_pred.melt(
-            id_vars="h",
-            value_vars=["q10", "q50", "q90"],
-            var_name="quantile",
-            value_name="value",
-        )
-        q50 = chart_df[chart_df["quantile"] == "q50"]
-        band_low = df_blend_pred[["h", "q10"]].rename(columns={"q10": "lower"})
-        band_high = df_blend_pred[["h", "q90"]].rename(
-            columns={"q90": "upper"})
-        band2 = band_low.merge(band_high, on="h")
-
-        band_chart = alt.Chart(band2).mark_area(opacity=0.25).encode(
-            x="h:Q", y="lower:Q", y2="upper:Q"
-        )
-        line_chart = alt.Chart(q50).mark_line().encode(
-            x="h:Q", y="value:Q"
-        )
-        st.altair_chart((band_chart + line_chart).properties(height=300),
-                        use_container_width=True)
-
-    # ---------------------------------------------------------------------
     # Baseline vs scenario
     # ---------------------------------------------------------------------
     st.markdown("### Baseline vs Scenario (q50 per horizon)")
@@ -463,38 +426,8 @@ if run:
     else:
         st.info("No compare_horizons data returned.")
 
-    # ---------------------------------------------------------------------
-    # Debug tabs
-    # ---------------------------------------------------------------------
-    st.markdown("### Raw model outputs (debug)")
-    t1, t2, t3, t4 = st.tabs([
-        "pre: predict_horizon",
-        "pre: compare_horizons",
-        "omicron: predict_horizon",
-        "omicron: compare_horizons",
-    ])
-
-    with t1:
-        st.dataframe(pre_pred.head(display_h)
-                     if pre_pred is not None else None)
-
-    with t2:
-        st.dataframe(pre_cmp.head(display_h) if pre_cmp is not None else None)
-
-    with t3:
-        st.dataframe(omi_pred.head(display_h)
-                     if omi_pred is not None else None)
-
-    with t4:
-        st.dataframe(omi_cmp.head(display_h) if omi_cmp is not None else None)
-
 
 # ---------------------------------------------------------------------
 # Footer
 # ---------------------------------------------------------------------
 st.markdown("---")
-st.caption("""
-Policy sliders: raw normalized levels 0–1.  
-Horizon always 12.  
-History returned by backend is shown on the combined chart.  
-""")
