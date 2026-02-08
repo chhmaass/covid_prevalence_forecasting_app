@@ -1,165 +1,264 @@
-COVID-19 Prevalence Forecasting App
+# COVID-19 Prevalence Forecasting App
 
-A horizon-aware quantile forecasting system for retrospective COVID-19 prevalence analysis under policy as-if scenarios.
+A **horizon-aware quantile forecasting system** for retrospective COVID-19 **point prevalence** analysis under **policy as-if scenarios**.
 
-The app generates probabilistic, multi-horizon forecasts of COVID-19 point prevalence across countries. It is a research forecasting prototype, not a real-time surveillance system, early-warning system, or operational decision-support tool.
+This repository contains a **research forecasting prototype** that generates probabilistic, multi-horizon prevalence forecasts across countries.  
+It is **not** a real-time surveillance system, early-warning system, or operational decision-support tool.
 
-Key Features
+---
 
-📈 Probabilistic forecasting via conditional quantile trajectories
+## Overview
 
-⏱️ Horizon-aware global models with direct multi-horizon prediction
+The app produces **conditional quantile trajectories** (e.g. q10 / q50 / q90) for COVID-19 prevalence over multiple forecast horizons. Forecasts are **scenario-conditioned**, not causal: policy variables define *assumed future paths*, not interventions whose effects are identified.
 
-🦠 Separate pre-Omicron and Omicron regime models
+The system is designed for:
 
-⚙️ FastAPI backend for forecasting inference
+- retrospective analysis  
+- uncertainty-aware forecasting  
+- controlled counterfactual-style scenario exploration  
+- methodological transparency  
 
-📊 Streamlit frontend for interactive scenario exploration
+---
 
-📦 Trained model artifacts and processed data for reproducible inference
+## Key Features
 
-⚖️ Explicit epistemic limits (scenario conditioning, not causal inference)
+- 📈 **Probabilistic forecasting** via conditional quantile regression  
+- ⏱️ **Horizon-aware global models** with direct multi-horizon prediction  
+- 🦠 **Separate regime models** (Pre-Omicron / Omicron)  
+- ⚙️ **FastAPI backend** for inference-only serving  
+- 📊 **Streamlit frontend** for interactive scenario exploration  
+- 📦 **Pre-trained model artifacts & processed data** for reproducible inference  
+- ⚖️ **Explicit epistemic limits** (scenario conditioning, no causal claims)  
 
-1. Repository Structure
+---
+
+## Repository Structure
+
+```
 COVID_PREVALENCE_FORECASTING_APP
-├── backend/                 # FastAPI backend service
-│   ├── .venv/               # Local virtualenv (ignored for Docker)
-│   └── app/
-│       ├── inference/
-│       │   └── quantile_forecast.py
-│       ├── models/
-│       │   ├── common.py
-│       │   ├── omicron.py
-│       │   └── pre_omicron.py
-│       ├── config.py
-│       ├── features.py
-│       ├── main.py
-│       ├── schemas.py
-│       ├── serving.py
-│       └── utils.py
-│
-├── artifacts/               # Trained model artifacts
-│   ├── pre_omicron/
-│   └── omicron/
-│
-├── data/                    # Processed training data
-│   ├── df_final_pre_omicron.csv
-│   └── df_final_omicron.csv
-│
-├── frontend/                # Streamlit UI
-│   ├── api_client.py
-│   ├── streamlit_app.py
+├── backend
+│   ├── app
+│   │   ├── inference
+│   │   │   └── quantile_forecast.py
+│   │   ├── models
+│   │   │   ├── common.py
+│   │   │   ├── omicron.py
+│   │   │   └── pre_omicron.py
+│   │   ├── config.py
+│   │   ├── features.py
+│   │   ├── main.py
+│   │   ├── schemas.py
+│   │   ├── serving.py
+│   │   └── utils.py
+│   │
+│   ├── artifacts
+│   │   ├── omicron
+│   │   │   ├── center_means_omicron.json
+│   │   │   ├── country_index_map_omicron.json
+│   │   │   ├── feature_contract_omicron.json
+│   │   │   ├── feature_norm_stats_omicron.json
+│   │   │   ├── serving_schema_omicron.json
+│   │   │   └── val_countries_omicron.json
+│   │   ├── pre_omicron
+│   │   │   ├── center_means_pre_omicron.json
+│   │   │   ├── country_index_map_pre_omicron.json
+│   │   │   ├── feature_contract_pre_omicron.json
+│   │   │   ├── feature_norm_stats_pre_omicron.json
+│   │   │   ├── serving_schema_pre_omicron.json
+│   │   │   └── val_countries_pre_omicron.json
+│   │   └── shared
+│   │
+│   ├── data
+│   │   ├── df_final_omicron.csv
+│   │   └── df_final_pre_omicron.csv
+│   │
+│   ├── .env.example
 │   ├── Dockerfile
 │   └── requirements.txt
 │
-├── training/                # Training notebooks / scripts (optional)
-├── shared/                  # Placeholder; currently unused
-├── Dockerfile               # Backend Dockerfile
-├── docker-compose.yml       # Multi-service orchestration
-├── requirements.txt         # Backend dependencies
+├── frontend
+│   ├── api_client.py
+│   ├── streamlit_app.py
+│   ├── .env.example
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── training
+│   ├── omicron
+│   │   ├── inference_notebook.ipynb
+│   │   └── training_notebook.ipynb
+│   └── pre_omicron
+│       ├── inference_notebook.ipynb
+│       └── training_notebook.ipynb
+│
+├── docker-compose.yml
 ├── How_to_run_app.txt
-└── README.md
+├── README.md
+└── .gitignore
+```
 
-2. Modeling Approach
+---
 
-The forecasting system is implemented as a global, horizon-aware neural quantile regressor trained jointly across countries and forecast horizons.
+## Modeling Approach
 
-Two regime-specific models are used.
+The forecasting system is implemented as a **global, horizon-aware neural quantile regressor**, trained jointly across:
 
-Pre-Omicron
+- countries  
+- forecast horizons  
+- epidemiological regimes  
 
-Omicron
+Two **regime-specific models** are used:
 
-At inference time, regime-specific forecasts are blended based on the forecast anchor week or manually overridden, producing a single probabilistic forecast distribution per horizon.
+- **Pre-Omicron**
+- **Omicron**
 
-Forecast outputs are conditional quantile trajectories (for example q10 / q50 / q90), allowing explicit inspection of uncertainty and dispersion across horizons.
+At inference time, regime-specific forecasts are:
 
-3. Policy-Sensitive Scenario Forecasting
+- selected based on the forecast anchor week, or  
+- manually overridden, and  
+- **blended** into a single probabilistic forecast distribution per horizon.
 
-Policy inputs enter the model as scenario-defining conditions, not as causal treatments.
+### Forecast Outputs
 
-Policies are normalized to the interval [0,1]
+Outputs are **conditional quantile trajectories** (e.g. q10 / q50 / q90), allowing:
 
-Policy variables are treated as endogenous and reactive
+- explicit uncertainty inspection  
+- horizon-specific dispersion analysis  
+- baseline vs. scenario comparison  
 
-Only future policy paths are manipulated in scenarios
+---
 
-Historical epidemiological trajectories remain fixed and observed
+## Policy-Sensitive Scenario Forecasting
 
-Structural constraints applied during training, including lag gating, directional constraints, and effect capping, bias the model toward conservative, causality-favorable behavior. The system does not estimate or identify causal policy effects.
+Policy variables enter the model **only as scenario-defining conditions**, not as causal treatments.
 
-4. Training and Inference Separation
+**Key design choices:**
 
-All substantive modeling assumptions, such as horizon-aware structure, constrained policy influence, and regularization choices, are implemented during model training and are reflected in the trained model artifacts.
+- Policy inputs are normalized to `[0, 1]`
+- Policy variables are treated as **endogenous and reactive**
+- Only **future policy paths** are manipulated in scenarios
+- Historical epidemiological trajectories remain fixed and observed
 
-At inference time, the application loads these pre-trained artifacts and applies them directly to generate probabilistic forecasts under user-defined scenarios. No additional constraint enforcement or assumption checking is performed during runtime. Interpretation of forecast outputs therefore relies on the documented training procedure and the provenance of the model artifacts used.
+### Structural Training Constraints
 
-5. Backend API
+During training, the model is biased toward **conservative, causality-favorable behavior** via:
 
-The FastAPI backend performs probabilistic forecasting inference.
+- lag gating  
+- directional constraints  
+- effect capping  
+- regularization  
 
-Pre-trained pre-Omicron and Omicron models are loaded
+⚠️ **Important:**  
+The system **does not estimate, identify, or validate causal policy effects**.  
+Forecasts are conditional projections under explicit assumptions.
 
-Horizon-aware quantile forecasts are generated
+---
 
-Regime-specific outputs are blended
+## Training vs. Inference Separation
 
-Recent historical prevalence and policy context may be returned
+All substantive modeling assumptions are implemented **during training** and embedded in the **trained model artifacts**, including:
 
-No training, optimization, or causal analysis is performed at runtime.
+- horizon-aware architecture  
+- constrained policy influence  
+- regime separation  
+- regularization structure  
 
-6. Frontend (Streamlit)
+### Inference-Time Behavior
 
-The Streamlit frontend provides an interactive interface for scenario exploration.
+At runtime:
+
+- pre-trained artifacts are loaded  
+- no retraining or optimization occurs  
+- no causal checks or constraint enforcement is applied  
+
+Interpretation of outputs therefore depends on:
+
+- the documented training procedure  
+- the provenance of the model artifacts used  
+
+---
+
+## Backend API (FastAPI)
+
+The backend performs **inference only**.
+
+It:
+
+- loads pre-trained Pre-Omicron and Omicron models  
+- generates horizon-aware quantile forecasts  
+- blends regime-specific outputs  
+- optionally returns recent historical context  
+
+It **does not**:
+
+- train models  
+- optimize parameters  
+- estimate causal effects  
+- perform policy evaluation  
+
+---
+
+## Frontend (Streamlit)
+
+The Streamlit frontend is a **pure exploration and visualization layer**.
 
 Users can:
 
-Select a country and historical forecast anchor week
+- select a country and forecast anchor week  
+- define future policy scenarios:
+  - constant paths  
+  - linear ramps  
+  - manual paths  
+- request probabilistic forecasts from the backend  
 
-Construct future policy scenarios using constant, linear, or manual paths
+Visualizations include:
 
-Request blended probabilistic forecasts from the backend
+- historical prevalence and forecast trajectories  
+- horizon-specific uncertainty bands  
+- baseline vs. scenario comparisons  
 
-Visualize
+No forecasting logic is implemented in the frontend.
 
-historical prevalence and forecast trajectories
+---
 
-horizon-specific uncertainty bands
+## Data
 
-baseline versus scenario comparisons
+The application uses **exactly two processed training artifacts**:
 
-The frontend performs no forecasting logic itself and serves purely as an exploration and visualization layer.
+- `df_final_pre_omicron.csv`
+- `df_final_omicron.csv`
 
-7. Data
+These are regime-specific transformations of a harmonized, cross-national COVID-19 risk and policy dataset.
 
-The app uses exactly two processed training artifacts.
+No additional external policy datasets are introduced at inference time.
 
-df_final_pre_omicron.csv
+---
 
-df_final_omicron.csv
+## Scope and Non-Goals
 
-These are regime-specific transformations of a harmonized cross-national COVID-19 risk and policy dataset. No additional external policy datasets are introduced at inference time.
+This system is **not intended to**:
 
-8. Scope and Non-Goals
+- estimate or identify causal policy effects  
+- provide policy recommendations  
+- support real-time surveillance or alerting  
+- function as an operational decision-support system  
 
-This system is not intended to:
+All outputs should be interpreted as:
 
-estimate or identify causal policy effects
+> **retrospective, conditional probabilistic forecasts under explicit scenario assumptions**
 
-provide policy recommendations
+---
 
-support real-time surveillance or alerting
+## License
 
-function as an operational decision-support system
+MIT License (unless otherwise specified).
 
-All outputs should be interpreted as retrospective, conditional probabilistic forecasts under explicit scenario assumptions.
+---
 
-License
+## Citation
 
-MIT License unless otherwise specified.
-
-Citation
-
-Christoph H. Maass (2025).
-COVID-19 Prevalence Forecasting App: Policy-Sensitive Scenario Forecasts (2020-2023)
-GitHub repository: https://github.com/chhmaass/covid_prevalence_forecasting_app
+Christoph H. Maass (2025).  
+COVID-19 Prevalence Forecasting App:  
+Policy-Sensitive Scenario Forecasts (2020–2023).  
+GitHub repository:  
+https://github.com/chhmaass/covid_prevalence_forecasting_app
