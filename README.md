@@ -430,7 +430,6 @@ This repository is a working research prototype, not a production-hardened servi
 - Required regime failures are logged and result in an explicit error; structured production telemetry is not implemented.
 - Authentication, rate limiting, production observability, and model monitoring are not implemented.
 - Dependencies are unpinned.
-- The Docker Compose build contexts require correction, as noted above.
 
 ## My contribution and use of generative AI
 
