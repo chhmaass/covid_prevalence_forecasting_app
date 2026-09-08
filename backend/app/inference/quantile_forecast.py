@@ -16,14 +16,15 @@ It:
     - recent history block (prevalence + policies) for the UI.
 
 NOTE:
-    - week_id_or_idx in the request is interpreted as a GLOBAL week index.
-    - pre-Omicron sees local_week = global_week (clamped inside its wrapper).
-    - Omicron sees local_week = global_week - OMI_GLOBAL_START.
+    - week_id_or_idx is a GLOBAL week index.
+    - both regime experts receive the same global anchor and history.
+    - the Omicron wrapper internally converts the time feature to its training axis.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+import logging
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.config import (
     H_MODEL,
     DEFAULT_QUANTILES,
+    MAX_GLOBAL_WEEK,
     OMI_GLOBAL_START,
     TRANSITION_WIDTH,
 )
@@ -48,23 +50,16 @@ from app.models.omicron import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------
 # Global history table: pre + omicron with GLOBAL week index
 # ---------------------------------------------------------------------
 
-# pre-Omicron: assume its week_id is already global 0..95
-_pre_hist = df_pre.copy()
-_pre_hist["global_week"] = _pre_hist["week_id"].astype(int)
-
-# Omicron: local 0..82 → global (OMI_GLOBAL_START..OMI_GLOBAL_START+82)
-_omi_hist = df_omi.copy()
-_omi_hist["global_week"] = _omi_hist["week_id"].astype(
-    int) + int(OMI_GLOBAL_START)
-
-# Unified history df used for the UI history block
-DF_HISTORY = pd.concat([_pre_hist, _omi_hist], ignore_index=True)
+# Both wrappers now expose the same unified global history.
+DF_HISTORY = df_pre.copy()
+DF_HISTORY["global_week"] = DF_HISTORY["week_id"].astype(int)
 
 
 # ---------------------------------------------------------------------
@@ -134,6 +129,11 @@ def _validate_policy_sliders(policy_sliders: list[list[float]]) -> None:
                     "Each policy_sliders row must be a list/tuple of length 3 "
                     "(stringency, face coverings, testing/tracing)."
                 ),
+            )
+        if not all(np.isfinite(value) and 0.0 <= float(value) <= 1.0 for value in row):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="All policy slider values must be finite numbers in [0, 1].",
             )
 
 
@@ -457,6 +457,11 @@ def quantile_forecast(req: ForecastRequest) -> Dict[str, Any]:
     # 2) Interpret week_id_or_idx as GLOBAL week index
     country = req.country_iso3.strip().upper()
     global_week = int(req.week_id_or_idx)
+    if not 0 <= global_week <= MAX_GLOBAL_WEEK:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"week_id_or_idx must be in [0, {MAX_GLOBAL_WEEK}].",
+        )
 
     # 3) Compute or override blend weights
     w_pre_raw = float(req.variant_blend.pre_omicron_weight)
@@ -479,53 +484,51 @@ def quantile_forecast(req: ForecastRequest) -> Dict[str, Any]:
     # Convert sliders to numpy array for convenience
     scenario_path = np.asarray(req.policy_sliders, dtype=float)
 
-    # 5) Map GLOBAL week to LOCAL week indices per regime
-    pre_local_week = global_week
-    omi_local_week = global_week - OMI_GLOBAL_START
-
     pre_pred = pre_cmp = omi_pred = omi_cmp = None
 
     # We isolate each call so one failing variant doesn't crash the whole endpoint
-    try:
-        pre_pred = predict_horizon_pre(
-            country_iso3=country,
-            week_id_or_idx=pre_local_week,
-            policy_sliders=scenario_path,
-        )
-    except Exception:
-        pre_pred = None
-
-    try:
-        pre_cmp = compare_horizons_pre(
-            country_iso3=country,
-            week_id_or_idx=pre_local_week,
-            scenario_sliders=scenario_path,
-        )
-    except Exception:
-        pre_cmp = None
-
-    # Only call Omicron model when we are at or after its global start
-    if omi_local_week >= 0:
+    if w_pre > 0.0:
         try:
-            omi_pred = predict_horizon_omi(
+            pre_pred = predict_horizon_pre(
                 country_iso3=country,
-                week_id_or_idx=omi_local_week,
+                week_id_or_idx=global_week,
                 policy_sliders=scenario_path,
             )
-        except Exception:
-            omi_pred = None
-
-        try:
-            omi_cmp = compare_horizons_omi(
+            pre_cmp = compare_horizons_pre(
                 country_iso3=country,
-                week_id_or_idx=omi_local_week,
+                week_id_or_idx=global_week,
                 scenario_sliders=scenario_path,
             )
         except Exception:
-            omi_cmp = None
-    else:
-        omi_pred = None
-        omi_cmp = None
+            logger.exception("Required Pre-Omicron inference failed")
+
+    if w_omi > 0.0:
+        try:
+            omi_pred = predict_horizon_omi(
+                country_iso3=country,
+                week_id_or_idx=global_week,
+                policy_sliders=scenario_path,
+            )
+            omi_cmp = compare_horizons_omi(
+                country_iso3=country,
+                week_id_or_idx=global_week,
+                scenario_sliders=scenario_path,
+            )
+        except Exception:
+            logger.exception("Required Omicron inference failed")
+
+    missing_required = (
+        (w_pre > 0.0 and (pre_pred is None or pre_cmp is None))
+        or (w_omi > 0.0 and (omi_pred is None or omi_cmp is None))
+    )
+    if missing_required:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "A regime model required by the selected blend failed. "
+                "No misleading partial blend was returned; inspect backend logs."
+            ),
+        )
 
     if (
         pre_pred is None
@@ -538,20 +541,7 @@ def quantile_forecast(req: ForecastRequest) -> Dict[str, Any]:
             detail="Both pre-Omicron and Omicron models failed.",
         )
 
-    # ------------------------------------------------------------------
-    # Shift Omicron outputs from LOCAL week axis to GLOBAL axis
-    # ------------------------------------------------------------------
-    if omi_pred is not None and not omi_pred.empty:
-        omi_pred = omi_pred.copy()
-        omi_pred["week_id"] = omi_pred["week_id"].astype(
-            int) + int(OMI_GLOBAL_START)
-
-    if omi_cmp is not None and not omi_cmp.empty:
-        omi_cmp = omi_cmp.copy()
-        omi_cmp["week_id"] = omi_cmp["week_id"].astype(
-            int) + int(OMI_GLOBAL_START)
-
-    # 6) Blend outputs (on GLOBAL week axis)
+    # 6) Blend outputs (both are already on the GLOBAL week axis)
     df_blend_pred = _blend_predictions(pre_pred, omi_pred, w_omi)
     df_blend_cmp = _blend_compare(pre_cmp, omi_cmp, w_omi)
 
@@ -562,12 +552,7 @@ def quantile_forecast(req: ForecastRequest) -> Dict[str, Any]:
         "global_week"
     )
 
-    if df_blend_pred is not None and not df_blend_pred.empty:
-        # df_blend_pred['week_id'] is GLOBAL after omicron shift
-        anchor_global = int(df_blend_pred["week_id"].iloc[0])
-    else:
-        # fall back to the requested GLOBAL week index
-        anchor_global = global_week
+    anchor_global = global_week
 
     # Last 32 observations up to anchor global week
     g_hist = g_hist[g_hist["global_week"] <= anchor_global].tail(32)

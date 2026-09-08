@@ -17,8 +17,6 @@ shared helpers in app.models.common.
 from __future__ import annotations
 
 import math
-import os
-from pathlib import Path
 from typing import Iterable, Sequence, Tuple, Union
 
 import numpy as np
@@ -26,6 +24,7 @@ import pandas as pd
 
 from app.config import H_MODEL
 from app.models.common import get_variant_artifacts, run_variant_model
+from app.models.history import load_global_history
 
 # ---------------------------------------------------------------------
 # Variant + artifacts
@@ -43,25 +42,12 @@ _feature_order = _feature_contract.feature_order     # list[str]
 _H = H_MODEL
 
 # ---------------------------------------------------------------------
-# Data (history) – pre-Omicron only
+# Data (shared global history)
 # ---------------------------------------------------------------------
 
-# You can override this via env var if your data path differs.
-_DEFAULT_DATA_PATH = (
-    Path(__file__).resolve().parents[2]  # backend/
-    / "data"
-    / "df_final_pre_omicron.csv"
-)
-DATA_PATH = Path(os.getenv("PRE_OMICRON_DATA_PATH", str(_DEFAULT_DATA_PATH)))
-
-if not DATA_PATH.is_file():
-    raise FileNotFoundError(
-        f"Pre-Omicron history CSV not found at {DATA_PATH}. "
-        f"Set PRE_OMICRON_DATA_PATH or place df_final_pre_omicron.csv in backend/data/."
-    )
-
-df = pd.read_csv(DATA_PATH)
-df = df.sort_values(["country_iso3", "week_id"]).reset_index(drop=True)
+# Both experts receive features from the same anchor week. The model remains
+# regime-specific through its own learned weights and normalization artifacts.
+df = load_global_history()
 
 # ---------------------------------------------------------------------
 # Configuration constants (must match training / notebook)
@@ -328,12 +314,24 @@ def _extract_knowns_rolling(
     row0 = df_country[df_country["week_id"] == int(start_week_id)]
     if row0.empty:
         raise ValueError(f"week_id={start_week_id} not found.")
-    lat = float(row0.iloc[0]["latitude"])
+    anchor = row0.iloc[0]
+    lat = float(anchor["latitude"])
+    phase0 = math.atan2(
+        float(anchor["sine_seasonality"]),
+        float(anchor["cosine_seasonality"]),
+    )
 
     rows = []
     for h in range(1, horizon + 1):
         wk = int(start_week_id) + h
-        seas = _seasonal_for_week(wk, lat)
+        angle = phase0 + 2.0 * math.pi * (h / WEEKS_PER_YEAR)
+        s, c = math.sin(angle), math.cos(angle)
+        seas = {
+            "sine_seasonality": s,
+            "cosine_seasonality": c,
+            "sine_seasonality_x_latitude": s * lat,
+            "cosine_seasonality_x_latitude": c * lat,
+        }
         rows.append(
             dict(
                 week_id=wk,
