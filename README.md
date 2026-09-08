@@ -356,10 +356,6 @@ The interfaces are then available at:
 - frontend: `http://localhost:8501`
 - API documentation: `http://localhost:8000/docs`
 
-### Docker status
-
-Backend and frontend Dockerfiles are included. The current `docker-compose.yml` uses `backend/` and `frontend/` as build contexts, while both Dockerfiles copy files using repository-root-relative paths. Those paths need to be aligned before `docker compose up --build` can be treated as a reliable one-command setup.
-
 ## Training and model artifacts
 
 The backend performs inference only. Training and hyperparameter optimization are documented in the regime-specific notebooks.
