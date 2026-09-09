@@ -56,7 +56,7 @@
     "Policy windows are exponential weighted means (Koyck) with halflives {6,12}.",
     "Anchors: prev_ma_4w, prev_slope_4w (history-only); time_c fixed across horizon.",
     "Smoothed policy windows used directly (no residualization).",
-    "Step-varying across horizon: policy windows & discrete lags; seasonality & latitude held fixed.",
+    "Step-varying across horizon: policy windows & discrete lags; seasonality varies across horizons; latitude is held fixed.",
     "Non-crossing quantiles via cumulative Softplus.",
     "Policy EWMs hard-constrained non-positive (per-feature caps). Lag features are unconstrained (optionally L2-regularized).",
     "Targets use stabilized logit on y/U; outputs are sigmoid-mapped logits and scaled by U at serve time.",
