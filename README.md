@@ -122,6 +122,62 @@ The exported architecture uses:
 
 The training notebooks use PyTorch, PyTorch Lightning, Optuna, pinball/quantile loss, early stopping, checkpointing, and learning-rate reduction on validation loss.
 
+#### Model architecture and regime blending
+
+The forecasting core is a compact horizon-aware feedforward neural network. It predicts all 12 forecast horizons directly and in parallel. It is therefore neither recurrent nor autoregressive: predictions from earlier horizons are not used as inputs for later horizons.
+
+```mermaid
+flowchart LR
+    A["Input features<br/>B × 12 × 27"] --> C["Concatenation<br/>B × 12 × 39"]
+    B["Horizon embedding<br/>12 × 12 dimensions"] --> C
+    C --> D["Constrained dense layer<br/>128 units · ReLU · Dropout"]
+    D --> E["Quantile head<br/>3 raw outputs"]
+    E --> F["Non-crossing transformation<br/>q10 ≤ q50 ≤ q90"]
+    F --> G["Sigmoid × U<br/>12 prevalence forecasts"]
+
+    P["Policy EWM features"] -. "bounded non-positive weights" .-> D
+```
+
+The 27 input features comprise:
+
+- 3 prevalence-history and time features
+- 5 geographical and seasonal features
+- 12 discrete policy-lag features
+- 6 exponentially weighted policy features with half-lives of 6 and 12 weeks
+- 1 lag-gate feature
+
+Each forecast horizon receives the same feature structure together with its own learned 12-dimensional horizon embedding. The resulting 39-dimensional representation is processed by a shared dense layer with 128 hidden units.
+
+The output layer generates three values per horizon. Cumulative Softplus transformations enforce ordered quantiles:
+
+- `q10 = r1`
+- `q50 = q10 + softplus(r2)`
+- `q90 = q50 + softplus(r3)`
+
+The exported TorchScript wrapper maps these logits back to the bounded prevalence scale using `sigmoid × U`, where `U = 1`.
+
+Two separately trained instances of this architecture are used for the epidemiological regimes:
+
+```mermaid
+flowchart LR
+    A["Forecast request<br/>country · anchor week · policy path"] --> P["Pre-Omicron model<br/>own weights and normalization"]
+    A --> O["Omicron model<br/>own weights and normalization"]
+
+    P --> B["Linear quantile blending"]
+    O --> B
+    W["Time-based or manual<br/>regime weights"] --> B
+
+    B --> Q["12 forecast horizons<br/>q10 · q50 · q90"]
+```
+
+Both regime models receive the same forecast request but use separate trained weights, normalization statistics and preprocessing artifacts. Their corresponding quantiles are combined as:
+
+`qτ,blend = wpre × qτ,pre + womicron × qτ,omicron`
+
+The default time-based transition runs linearly between global weeks 90 and 102. The weights can also be set manually.
+
+This procedure is a linear blend of corresponding conditional quantiles. It should not be interpreted as the exact quantile function of a probabilistic mixture distribution.
+
 ### Feature contract
 
 The 27 inference features are organized as follows:
