@@ -28,7 +28,7 @@ The hosted Streamlit service may require a short cold-start period after inactiv
 - [Validation and reproducibility](#validation-and-reproducibility)
 - [Limitations and engineering status](#limitations-and-engineering-status)
 - [My contribution and use of generative AI](#my-contribution-and-use-of-generative-ai)
-- [Documentation, citation, and license](#documentation-citation-and-license)
+- [Citation and license](#citation-and-license)
 
 ## What the application does
 
@@ -485,7 +485,7 @@ My own contribution consisted of:
 
 The repository therefore demonstrates **requirements definition, analytical problem structuring, iterative implementation control, verification, testing, publication, and technical documentation in an AI-assisted development workflow**. It should be assessed as a transparent learning and research prototype rather than as evidence that every line of code was written without assistance.
 
-## Documentation, citation, and license
+## Citation and license
 
 Suggested citation:
 
@@ -495,7 +495,7 @@ Policy-Sensitive Scenario Forecasts (2020–2023). Research software prototype.
 https://github.com/chhmaass/covid_prevalence_forecasting_app
 ```
 
-### License
+License:
 
 The source code in this repository is available under the [MIT License](LICENSE).
 
