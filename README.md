@@ -112,19 +112,7 @@ The scenario interface uses three policy series, represented on the model's norm
 
 Each regime is represented by a global feed-forward neural quantile regressor trained across countries and all 12 forecast horizons. A learned horizon embedding allows the same model to produce horizon-specific outputs without recursively feeding predictions back into the model.
 
-The exported architecture uses:
-
-- a 12-dimensional horizon embedding;
-- a 27-feature continuous input contract;
-- one hidden layer with 128 units;
-- dropout;
-- three quantile outputs per horizon.
-
-The training notebooks use PyTorch, PyTorch Lightning, Optuna, pinball/quantile loss, early stopping, checkpointing, and learning-rate reduction on validation loss.
-
-#### Model architecture and regime blending
-
-The forecasting core is a compact horizon-aware feedforward neural network. It predicts all 12 forecast horizons directly and in parallel. It is therefore neither recurrent nor autoregressive: predictions from earlier horizons are not used as inputs for later horizons.
+It is therefore neither recurrent nor autoregressive: predictions from earlier horizons are not used as inputs for later horizons.
 
 ```mermaid
 flowchart LR
@@ -155,6 +143,8 @@ The output layer generates three values per horizon. Cumulative Softplus transfo
 - `q90 = q50 + softplus(r3)`
 
 The exported TorchScript wrapper maps these logits back to the bounded prevalence scale using `sigmoid × U`, where `U = 1`.
+
+The training notebooks use PyTorch, PyTorch Lightning, Optuna, pinball/quantile loss, early stopping, checkpointing, and learning-rate reduction on validation loss.
 
 Two separately trained instances of this architecture are used for the epidemiological regimes:
 
@@ -192,16 +182,6 @@ The 27 inference features are organized as follows:
 | Serving gate | `lag_gate` | set to zero during inference |
 
 All model inputs are standardized using the included regime-specific training statistics.
-
-### Ordered and bounded quantiles
-
-The model constructs q50 and q90 as positive increments above the preceding quantile by using cumulative `Softplus` transformations. This structurally enforces:
-
-```text
-q10 <= q50 <= q90
-```
-
-The exported TorchScript wrapper applies a sigmoid transformation and scales outputs to the prevalence range `[0, 1]`.
 
 ## Policy scenarios and interpretation
 
@@ -505,7 +485,7 @@ My own contribution consisted of:
 
 The repository therefore demonstrates **requirements definition, analytical problem structuring, iterative implementation control, verification, testing, publication, and technical documentation in an AI-assisted development workflow**. It should be assessed as a transparent learning and research prototype rather than as evidence that every line of code was written without assistance.
 
-## Citation, and license
+## Documentation, citation, and license
 
 Suggested citation:
 
