@@ -497,4 +497,6 @@ https://github.com/chhmaass/covid_prevalence_forecasting_app
 
 ### License
 
-No standalone `LICENSE` file is currently included in the repository. Add an explicit license before others are invited to reuse, modify, or redistribute the code and artifacts.
+The source code in this repository is available under the [MIT License](LICENSE).
+
+The processed datasets and trained model artifacts are included for research transparency and reproducible inference. Their reuse or redistribution may additionally be subject to the terms of the underlying data sources.
